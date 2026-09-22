@@ -1,0 +1,79 @@
+{
+  "experimento": "E2 - curva dosis-respuesta de fuga",
+  "fecha": "2026-09-21 08:24:29",
+  "entorno": {
+    "python": "3.12.9",
+    "plataforma": "Windows-10-10.0.19045-SP0"
+  },
+  "configuracion": {
+    "categoria": "bottle",
+    "modelo": "padim",
+    "coreset_sampling_ratio": 0.01,
+    "duplicados": [
+      0,
+      3
+    ],
+    "semillas": 3,
+    "alpha": 0.05,
+    "umbral_relevancia_pp": 2.0,
+    "jitter": {
+      "translation": 0.02,
+      "rotation_deg": 2.0,
+      "scale": 0.02,
+      "brightness": 0.03,
+      "noise_sigma": 2.0
+    }
+  },
+  "monotonia_spearman": null,
+  "segundos_totales": 612.4,
+  "curva": [
+    {
+      "duplicados": 0,
+      "redundancia": 0.0,
+      "n_normales": 229,
+      "n_defectos": 63,
+      "auroc_ingenuo": [
+        0.9782608695652174,
+        0.8586956521739131,
+        0.9565217391304348
+      ],
+      "auroc_por_grupo": [
+        0.9130434782608695,
+        0.8586956521739131,
+        0.9130434782608695
+      ],
+      "delta_medio": 0.036231884057971064,
+      "ci_low": 0.0,
+      "ci_high": 0.0652173913043479,
+      "p_value": 0.5,
+      "p_value_corregido": 1.0,
+      "rank_biserial": 1.0,
+      "magnitud": "grande",
+      "relevante": false
+    },
+    {
+      "duplicados": 3,
+      "redundancia": 0.75,
+      "n_normales": 916,
+      "n_defectos": 63,
+      "auroc_ingenuo": [
+        0.9371584699453552,
+        0.9016393442622951,
+        0.982218752710556
+      ],
+      "auroc_por_grupo": [
+        0.9602311939268461,
+        0.9239130434782609,
+        0.8614130434782609
+      ],
+      "delta_medio": 0.02515309534494618,
+      "ci_low": -0.02307272398149085,
+      "ci_high": 0.12080570923229517,
+      "p_value": 1.0,
+      "p_value_corregido": 1.0,
+      "rank_biserial": 0.0,
+      "magnitud": "despreciable",
+      "relevante": false
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+[project]
+name = "inspeccion"
+version = "0.1.0"
+description = "Plataforma no-code de inspeccion visual industrial - nucleo de curacion de frames y particion anti-fuga"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+# El nucleo (curacion, particion) NO depende de torch ni anomalib a proposito:
+# es la contribucion cientifica y debe poder ejecutarse y testearse en cualquier
+# maquina, sin GPU y sin el stack pesado de ML.
+dependencies = [
+    "numpy>=1.26,<3",
+    # scipy esta en el nucleo, no en un extra: las pruebas estadisticas del
+    # protocolo son parte de la contribucion, no infraestructura opcional. Se usa
+    # la implementacion de scipy y no una propia porque un jurado confia en
+    # scipy.stats.wilcoxon y preguntaria por una implementacion casera.
+    "scipy>=1.11,<2",
+]
+
+[project.optional-dependencies]
+# Extraccion de frames y hashing perceptual. Versiones ancladas: la trazabilidad
+# (RNF-08) exige que un resultado sea regenerable con el mismo software.
+# imagehash: BSD-2. opencv-python-headless: Apache-2.0. Ambas permisivas.
+# fastdup queda descartada a proposito por su licencia CC BY-NC-ND 4.0.
+media = [
+    "opencv-python-headless==5.0.0.93",
+    "pillow==12.3.0",
+    "ImageHash==4.3.2",
+]
+# Stack de entrenamiento. NOTA: requiere Python 3.12. No instalar bajo 3.13.
+#
+# Todo va anclado por dos motivos, ambos comprobados en la instalacion:
+#
+# 1. anomalib v2.x cambio la API respecto de v1.x (dataclasses, Preprocessor/
+#    Postprocessor, Metrics API).
+# 2. El extra `anomalib[core]` NO declara varias dependencias que sus propios
+#    modulos importan sin condicion: scikit-learn (anomalib.data), python-dotenv
+#    y requests (anomalib.models, via los backends VLM y CLIP), ftfy/regex/
+#    einops/kornia. Sin ellas `from anomalib.models import Patchcore` falla.
+#
+# openvino queda fijado a la serie 2024.6: anomalib 2.0.0 importa
+# `openvino.runtime`, espacio de nombres que OpenVINO elimino en las series
+# 2025+. Instalar "openvino" sin anclar rompe el import de anomalib.deploy.
+ml = [
+    "anomalib==2.0.0",
+    "torch==2.14.0",
+    "torchvision==0.29.0",
+    "lightning==2.6.6",
+    "timm==1.0.29",
+    "openvino==2024.6.0",
+    "scikit-learn==1.9.1",
+    "python-dotenv==1.2.3",
+    "requests==2.34.2",
+    "ftfy==6.3.1",
+    "regex==2026.9.10",
+    "einops==0.8.2",
+    "kornia==0.8.3",
+    # El exportador ONNX de torch 2.14 los importa; sin ellos falla el export.
+    "onnx==1.23.0",
+    "onnxscript==0.7.2",
+    # Medicion del pico de RAM en los experimentos (RNF-02 y E4).
+    "psutil>=5.9",
+    "mlflow>=2.16,<3",
+]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    # Solo como referencia independiente contra la que validar el AUROC propio.
+    # No se usa en el codigo de produccion.
+    "scikit-learn>=1.5",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+# El nucleo corre en 3.13 y el stack de anomalib en 3.12: hay mas de un entorno
+# virtual en el arbol y ninguno debe analizarse.
+extend-exclude = [".venv*", "ml/data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF", "ANN"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN"]
+# anomalib no publica stubs: los tipos de sus modelos, datasets y trainer son
+# `Any` por necesidad. La frontera queda contenida en este adaptador y todo lo
+# que cruza hacia el dominio sale convertido y tipado.
+"src/inspeccion/adapters/ml_engine/*" = ["ANN401"]
+
+[tool.ruff.lint.isort]
+# `conftest` y `fakes` son modulos del propio proyecto aunque vivan en tests/.
+known-first-party = ["inspeccion", "conftest", "fakes"]
+
+[tool.mypy]
+# 3.12 es el objetivo de despliegue: es la version mas alta que soporta el stack
+# de anomalib. Los stubs de numpy >= 2.5 usan sintaxis de 3.12 y fallan por debajo.
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+mypy_path = "src"
+packages = ["inspeccion"]
+
+[[tool.mypy.overrides]]
+# Librerias sin stubs. El codigo propio convierte en el limite (`float(...)`,
+# `np.asarray(...)`) para que nada sin tipar se propague hacia adentro.
+module = [
+    "cv2.*",
+    "imagehash.*",
+    "PIL.*",
+    "scipy.*",
+    "anomalib.*",
+    "lightning.*",
+    "torch.*",
+    "pandas.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --cov=inspeccion --cov-report=term-missing"
+markers = [
+    "slow: entrena un modelo real; solo corre con el extra 'ml' instalado",
+]

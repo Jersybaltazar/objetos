@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv*/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Datos: nunca versionar el dataset. Se versionan los MANIFIESTOS de particion,
+# que son pequenos, y estos si deben commitearse (ver !ml/experiments/manifests/).
+ml/data/
+ml/mlruns/
+*.mp4
+*.avi
+*.mov
+*.png
+*.jpg
+*.jpeg
+!docs/**/*.png
+
+# Manifiestos de particion: son la evidencia reproducible del experimento.
+!ml/experiments/manifests/*.json
+
+# Modelos
+*.ckpt
+*.onnx
+*.pt
+*.pth
+
+# Frontend
+node_modules/
+.next/
+dist/
+
+# Entorno
+.env
+.env.local
+
+# IDE / SO
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

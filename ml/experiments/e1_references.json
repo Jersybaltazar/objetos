@@ -1,0 +1,73 @@
+{
+  "_nota": [
+    "Valores de referencia del experimento E1, tomados de las tablas por categoria",
+    "de los papers originales. Fuente primaria en cada caso; la URL y la tabla",
+    "exacta quedan anotadas para que cualquiera pueda comprobarlas.",
+    "",
+    "La leccion aprendida al rellenarlas: una cifra publicada solo es comparable",
+    "contra una corrida de LA MISMA configuracion. PatchCore en 'screw' da 96.4",
+    "con coreset al 1% y 98.1 al 25%; PaDiM cambia mucho segun el backbone. Por eso",
+    "la configuracion viaja junto al numero, y el script la registra en cada",
+    "corrida."
+  ],
+  "tolerancia_pp": 2.0,
+  "suelo_conservador": {
+    "_nota": [
+      "Criterio de respaldo para cuando no hay referencia verificada. Es laxo a",
+      "proposito: detecta codigo roto, no diferencias de calidad.",
+      "",
+      "AVISO SOBRE ESTE SUELO: en la primera corrida de E1 marco 'screw' como",
+      "FALLA con PatchCore (0.9672 frente a un suelo de 0.97), y resulto ser un",
+      "falso positivo: el paper reporta 96.4 para PatchCore-1% en esa categoria.",
+      "Un unico suelo por modelo no captura que la dificultad varia mucho entre",
+      "categorias. Se conserva solo como red de seguridad; el veredicto valido es",
+      "el que se emite contra la referencia por categoria."
+    ],
+    "patchcore": 0.95,
+    "padim": 0.9
+  },
+  "referencias": {
+    "patchcore": {
+      "configuracion": "wide_resnet50_2, layers (layer2, layer3), coreset 0.01 (PatchCore-1%), 256x256",
+      "fuente_paper": {
+        "verificado": true,
+        "cita": "Roth et al. (2022), Towards Total Recall in Industrial Anomaly Detection, CVPR, arXiv:2106.08265",
+        "donde": "Material suplementario, Tabla S1 (Anomaly Detection Performance AUROC on MVTec AD), columna PatchCore-1%",
+        "url": "https://ar5iv.labs.arxiv.org/html/2106.08265",
+        "bottle": 1.0,
+        "screw": 0.964,
+        "metal_nut": 0.997,
+        "_contexto": "La misma tabla da, para screw, 97.0 con PatchCore-10% y 98.1 con PatchCore-25%: el ratio de coreset mueve casi 2 pp en esta categoria."
+      },
+      "fuente_anomalib": {
+        "verificado": false,
+        "url": "https://github.com/open-edge-platform/anomalib",
+        "donde": "README / docs de benchmarks",
+        "bottle": null,
+        "screw": null,
+        "metal_nut": null
+      }
+    },
+    "padim": {
+      "configuracion": "wide_resnet50_2, layers (layer1, layer2, layer3), n_features 550 (PaDiM-WR50-Rd550), 256x256",
+      "fuente_paper": {
+        "verificado": true,
+        "cita": "Defard et al. (2021), PaDiM: a Patch Distribution Modeling Framework for Anomaly Detection and Localization, ICPR Workshops, arXiv:2011.08785",
+        "donde": "Tabla 'Anomaly detection results (at the image level) on the MVTec AD using AUROC%', columna PaDiM-WR50-Rd550",
+        "url": "https://ar5iv.labs.arxiv.org/html/2011.08785",
+        "bottle": 0.983,
+        "screw": 0.975,
+        "metal_nut": 0.972,
+        "_contexto": "El default de anomalib es resnet18, NO el wide_resnet50_2 del paper. Con resnet18 la primera corrida de E1 dio 0.8268 en screw: PaDiM es muy sensible al backbone y comparar contra esta referencia exige fijarlo."
+      },
+      "fuente_anomalib": {
+        "verificado": false,
+        "url": "https://github.com/open-edge-platform/anomalib",
+        "donde": "README / docs de benchmarks",
+        "bottle": null,
+        "screw": null,
+        "metal_nut": null
+      }
+    }
+  }
+}

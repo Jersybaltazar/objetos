@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint, tipos, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # 3.12 es la version objetivo: la mas alta compatible con el stack de
+          # anomalib. El nucleo de curacion no depende de torch y corre en 3.11+.
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        # Incluye el extra 'media' para que los tests de los adaptadores reales
+        # (OpenCV, imagehash) se ejecuten en CI en vez de saltarse en silencio.
+        run: pip install -e ".[dev,media]"
+
+      - name: Ruff (lint)
+        run: ruff check .
+
+      - name: Ruff (formato)
+        run: ruff format --check .
+
+      - name: Mypy (estricto)
+        run: mypy
+
+      - name: Pytest
+        # Sin el extra 'ml', los tests que entrenan un modelo real se saltan.
+        # Es deliberado: torch pesa ~2,5 GB y no debe descargarse en cada push.
+        run: pytest --cov-fail-under=60
+
+  ml:
+    name: Integracion con anomalib (bajo demanda)
+    # Solo manual: instala torch y entrena un modelo, del orden de minutos.
+    # Hay que lanzarlo tras cada cambio de version del stack de ML, porque es lo
+    # unico que detecta que anomalib volvio a reparticionar los datos por su
+    # cuenta o que el exportador ONNX cambio de contrato.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias con el stack de ML
+        run: pip install -e ".[dev,media,ml]"
+
+      - name: Pytest (incluye entrenamiento real)
+        run: pytest --no-cov tests/test_adapters_ml_engine.py
+
+  # El job del frontend se anade en la Fase 4 (semanas 11-13), cuando exista
+  # codigo TypeScript que verificar. No se declara antes para que el CI no
+  # falle sobre un directorio vacio.

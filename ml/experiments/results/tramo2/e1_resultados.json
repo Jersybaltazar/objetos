@@ -1,0 +1,44 @@
+{
+  "experimento": "E1 - validacion de la integracion",
+  "fecha": "2026-09-21 07:41:07",
+  "commit": "sin commit",
+  "entorno": {
+    "python": "3.12.9",
+    "plataforma": "Windows-10-10.0.19045-SP0",
+    "torch": "2.14.0+cpu",
+    "anomalib": "2.0.0",
+    "cuda": "disponible=False"
+  },
+  "configuracion": {
+    "root": "D:\\tesis\\ml\\data\\MVTecAD",
+    "categorias": [
+      "bottle"
+    ],
+    "modelos": [
+      "patchcore"
+    ],
+    "coreset_sampling_ratio": 0.01,
+    "batch_size": 32,
+    "seed": 0,
+    "split": "oficial de MVTec AD, sin modificar"
+  },
+  "tolerancia_pp": 2.0,
+  "celdas": [
+    {
+      "modelo": "patchcore",
+      "categoria": "bottle",
+      "auroc": 1.0,
+      "n_train": 209,
+      "n_test": 83,
+      "n_test_defecto": 63,
+      "segundos_entrenamiento": 162.06,
+      "segundos_inferencia": 19.45,
+      "ram_pico_mb": 3132.6,
+      "referencia_anomalib": null,
+      "referencia_paper": null,
+      "suelo": 0.97,
+      "veredicto": "PASA",
+      "motivo": "sin referencia verificada; contra suelo 0.970"
+    }
+  ]
+}
