@@ -9,6 +9,7 @@ from inspeccion.application.evaluation.statistics import (
     holm_bonferroni,
     paired_comparison,
     rank_biserial,
+    spearman,
 )
 
 RNG = np.random.default_rng(20260919)
@@ -188,3 +189,69 @@ class TestTamanosDeEfecto:
 
         assert rank_biserial(tratamiento, control) == pytest.approx(1.0)
         assert abs(cliffs_delta(tratamiento, control)) < 0.5
+
+
+class TestSpearmanExacto:
+    """He1b: la inflacion crece con la dosis.
+
+    Con pocos puntos la aproximacion asintotica de scipy es invalida y degenera:
+    con correlacion perfecta el estadistico t se va a infinito y el p-valor sale
+    0.0, que es imposible. Estos tests fijan el p-valor exacto.
+    """
+
+    def test_correlacion_perfecta_no_da_p_cero(self):
+        # El bug que motivo este modulo: scipy reportaba p=0.0000 con n=6.
+        resultado = spearman(np.arange(6.0), np.arange(6.0) * 2)
+
+        assert resultado.rho == pytest.approx(1.0)
+        assert resultado.exact
+        assert resultado.p_value == pytest.approx(2 / 720)
+
+    def test_p_exacto_con_cinco_puntos(self):
+        resultado = spearman(np.arange(5.0), np.arange(5.0))
+
+        assert resultado.p_value == pytest.approx(2 / 120)
+
+    def test_p_minimo_alcanzable_avisa_de_un_diseno_imposible(self):
+        # Con 4 puntos el p-valor exacto minimo es 0.083: He1b no podia
+        # rechazarse ni con monotonia perfecta. Ese fue el defecto del diseno
+        # de 4 dosis, y esta propiedad lo hace detectable antes de ejecutar.
+        assert spearman(np.arange(4.0), np.arange(4.0)).min_achievable_p > 0.05
+        assert spearman(np.arange(6.0), np.arange(6.0)).min_achievable_p < 0.05
+
+    def test_correlacion_inversa(self):
+        resultado = spearman(np.arange(6.0), -np.arange(6.0))
+
+        assert resultado.rho == pytest.approx(-1.0)
+        assert resultado.p_value == pytest.approx(2 / 720)
+
+    def test_sin_relacion_no_es_significativo(self):
+        resultado = spearman(np.arange(6.0), np.array([3.0, 1.0, 5.0, 2.0, 6.0, 4.0]))
+
+        assert abs(resultado.rho) < 0.6
+        assert resultado.p_value > 0.05
+
+    def test_coincide_con_el_rho_de_scipy(self):
+        from scipy.stats import spearmanr
+
+        x = np.array([0.0, 0.05, 0.10, 0.15, 0.20, 0.25])
+        y = np.array([0.0, 1.25, 1.96, 3.10, 4.03, 4.25])
+
+        assert spearman(x, y).rho == pytest.approx(float(spearmanr(x, y).statistic))
+
+    def test_usa_la_aproximacion_con_muchos_puntos(self):
+        resultado = spearman(np.arange(30.0), np.arange(30.0))
+
+        assert not resultado.exact
+        assert resultado.min_achievable_p == 0.0
+
+    @pytest.mark.parametrize(
+        ("kwargs", "mensaje"),
+        [
+            ({"x": np.arange(3.0), "y": np.arange(4.0)}, "mismo tamano"),
+            ({"x": np.arange(2.0), "y": np.arange(2.0)}, "al menos 3 puntos"),
+        ],
+    )
+    def test_validaciones(self, kwargs, mensaje):
+        with pytest.raises(ValueError, match=mensaje):
+            spearman(**kwargs)

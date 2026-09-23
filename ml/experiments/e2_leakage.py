@@ -47,7 +47,13 @@ from mvtec import inspect_category
 
 from inspeccion.adapters.ml_engine import AnomalibMLEngine, AnomalyModel
 from inspeccion.application.curation import build_leaked_arms
-from inspeccion.application.evaluation import auroc, holm_bonferroni, paired_comparison
+from inspeccion.application.evaluation import (
+    MonotonicityResult,
+    auroc,
+    holm_bonferroni,
+    paired_comparison,
+    spearman,
+)
 from inspeccion.domain.models import Label, Split, SplitManifest
 
 RAIZ = Path(__file__).resolve().parent
@@ -279,14 +285,22 @@ def _corregir_multiples(puntos: list[PuntoDeCurva], alpha: float) -> None:
         punto.relevante = punto.relevante and punto.p_value_corregido < alpha
 
 
-def _monotonia(puntos: list[PuntoDeCurva]) -> tuple[float, float] | None:
-    """He1b: la inflacion crece con la dosis. Spearman entre lambda y delta."""
-    if len(puntos) < 3:
-        return None
-    from scipy.stats import spearmanr
+def _monotonia(puntos: list[PuntoDeCurva]) -> MonotonicityResult | None:
+    """He1b: la inflacion crece con la dosis. Spearman entre lambda y delta.
 
-    resultado = spearmanr([p.dosis for p in puntos], [p.delta_medio for p in puntos])
-    return float(resultado.statistic), float(resultado.pvalue)
+    Se excluye el punto de dosis cero: su delta es 0 **por construccion**, no
+    medido, y meter un punto construido en un test de correlacion lo infla.
+
+    Se usa el Spearman con p-valor exacto del nucleo y no el de scipy: con pocos
+    puntos la aproximacion asintotica degenera y devuelve p = 0.0 ante correlacion
+    perfecta, que es imposible. Con 5 puntos el minimo alcanzable es 0.0167.
+    """
+    medidos = [p for p in puntos if p.n_frames_filtrados > 0]
+    if len(medidos) < 3:
+        return None
+    return spearman(
+        np.array([p.dosis for p in medidos]), np.array([p.delta_medio for p in medidos])
+    )
 
 
 def _imprimir_curva(puntos: list[PuntoDeCurva]) -> None:
@@ -325,8 +339,12 @@ def _veredicto(puntos: list[PuntoDeCurva], args: argparse.Namespace) -> int:
     monotonia = _monotonia(puntos)
     print()
     if monotonia is not None:
-        rho, p_rho = monotonia
-        print(f"He1b (monotonia): Spearman rho={rho:+.3f}, p={p_rho:.4f}")
+        exacto = "exacto" if monotonia.exact else "asintotico"
+        print(
+            f"He1b (monotonia, {monotonia.n} dosis medidas): "
+            f"Spearman rho={monotonia.rho:+.3f}, p={monotonia.p_value:.4f} ({exacto}; "
+            f"minimo alcanzable con {monotonia.n} puntos: {monotonia.min_achievable_p:.4f})"
+        )
 
     if relevantes:
         print(
@@ -402,7 +420,16 @@ def _archivar(puntos: list[PuntoDeCurva], args: argparse.Namespace, segundos: fl
                     },
                 },
                 "monotonia_spearman": (
-                    None if monotonia is None else {"rho": monotonia[0], "p": monotonia[1]}
+                    None
+                    if monotonia is None
+                    else {
+                        "n_dosis_medidas": monotonia.n,
+                        "rho": monotonia.rho,
+                        "p": monotonia.p_value,
+                        "p_exacto": monotonia.exact,
+                        "p_minimo_alcanzable": monotonia.min_achievable_p,
+                        "nota": "excluye lambda=0, cuyo delta es 0 por construccion",
+                    }
                 ),
                 "segundos_totales": round(segundos, 1),
                 "curva": [asdict(p) for p in puntos],

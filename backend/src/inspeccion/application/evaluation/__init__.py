@@ -16,12 +16,14 @@ from inspeccion.application.evaluation.metrics import (
 )
 from inspeccion.application.evaluation.statistics import (
     EquivalenceResult,
+    MonotonicityResult,
     PairedComparison,
     cliffs_delta,
     equivalence,
     holm_bonferroni,
     paired_comparison,
     rank_biserial,
+    spearman,
 )
 from inspeccion.application.evaluation.thresholding import (
     CalibratedThreshold,
@@ -34,6 +36,7 @@ __all__ = [
     "Confusion",
     "DegenerateLabelsError",
     "EquivalenceResult",
+    "MonotonicityResult",
     "PairedComparison",
     "ThresholdLeakageError",
     "auroc",
@@ -45,4 +48,5 @@ __all__ = [
     "holm_bonferroni",
     "paired_comparison",
     "rank_biserial",
+    "spearman",
 ]

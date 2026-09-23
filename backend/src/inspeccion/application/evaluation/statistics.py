@@ -272,3 +272,79 @@ def _bootstrap_ci(differences: Samples, *, n_bootstrap: int, seed: int) -> dict[
     means = draws.mean(axis=1)
     low, high = np.percentile(means, [2.5, 97.5])
     return {"ci_low": float(low), "ci_high": float(high)}
+
+
+@dataclass(frozen=True, slots=True)
+class MonotonicityResult:
+    """Correlacion de Spearman con p-valor exacto cuando la muestra es pequena."""
+
+    n: int
+    rho: float
+    p_value: float
+    exact: bool
+    """True si el p-valor viene de enumerar todas las permutaciones."""
+
+    @property
+    def min_achievable_p(self) -> float:
+        """El p-valor mas pequeno que este numero de puntos permite alcanzar.
+
+        Con correlacion perfecta solo hay 2 de n! ordenaciones tan extremas. Si
+        este valor es mayor que alpha, el contraste **no puede** rechazar H0 por
+        muchos datos que se acumulen, y el diseno necesita mas puntos.
+        """
+        if self.n > MAX_EXACT_N:
+            return 0.0
+        total = 1
+        for k in range(2, self.n + 1):
+            total *= k
+        return 2.0 / total
+
+
+MAX_EXACT_N = 10
+"""Por encima de 10 puntos, 10! = 3.6 M permutaciones; se usa la aproximacion."""
+
+
+def spearman(x: Samples, y: Samples) -> MonotonicityResult:
+    """Correlacion de rangos de Spearman, con p-valor exacto para n pequeno.
+
+    La aproximacion asintotica de scipy es invalida con pocos puntos y degenera
+    con correlacion perfecta: el estadistico t se va a infinito y el p-valor sale
+    0.0, que es imposible. Con n = 6 el p-valor exacto minimo es 0.0028.
+    """
+    a = np.asarray(x, dtype=np.float64).ravel()
+    b = np.asarray(y, dtype=np.float64).ravel()
+    if a.size != b.size:
+        raise ValueError(f"x e y deben tener el mismo tamano: {a.size} vs {b.size}")
+    if a.size < 3:
+        raise ValueError(f"hacen falta al menos 3 puntos, hay {a.size}")
+
+    rho = _spearman_rho(a, b)
+    if a.size <= MAX_EXACT_N:
+        return MonotonicityResult(a.size, rho, _exact_p(a, b, rho), exact=True)
+
+    from scipy.stats import spearmanr
+
+    return MonotonicityResult(a.size, rho, float(spearmanr(a, b).pvalue), exact=False)
+
+
+def _spearman_rho(a: Samples, b: Samples) -> float:
+    ra, rb = average_ranks(a), average_ranks(b)
+    ra, rb = ra - ra.mean(), rb - rb.mean()
+    denominador = float(np.sqrt((ra**2).sum() * (rb**2).sum()))
+    return float((ra * rb).sum() / denominador) if denominador else 0.0
+
+
+def _exact_p(a: Samples, b: Samples, rho: float) -> float:
+    """Proporcion de permutaciones con |rho| al menos tan extremo como el observado."""
+    from itertools import permutations
+
+    observado = abs(rho) - 1e-12
+    extremos = sum(
+        1
+        for orden in permutations(range(a.size))
+        if abs(_spearman_rho(a, b[list(orden)])) >= observado
+    )
+    total = 1
+    for k in range(2, a.size + 1):
+        total *= k
+    return extremos / total

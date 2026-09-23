@@ -188,6 +188,26 @@ Spearman λ–Δ: ρ = +0,800, p = 0,200.
 
 **Defecto estructural detectado en este diseño.** Con 4 niveles de dosis, la correlación de Spearman tiene un p-valor mínimo alcanzable de 0,083 aun con monotonía perfecta (ρ = 1). **He1b no podía rechazarse en ningún escenario**, con independencia de los datos. Es un error de diseño del mismo tipo que el de las 3 réplicas del piloto, y existe al margen del resultado observado.
 
+**Resultado de la réplica extendida (22 de septiembre de 2026, n = 20, 6 niveles de dosis).**
+
+| λ | frames filtrados | AUROC limpio | AUROC filtrado | Δ (pp) | IC95 (pp) | p Holm | |
+|---|---|---|---|---|---|---|---|
+| 0 % | 0 | 0,9487 | 0,9487 | **0,00** | [0,00; 0,00] | — | control |
+| 5 % | 27 | 0,9487 | 0,9612 | +1,25 | [−0,65; +3,14] | 0,147 | |
+| 10 % | 55 | 0,9487 | 0,9683 | +1,96 | [−0,42; +4,25] | 0,141 | |
+| 15 % | 82 | 0,9487 | 0,9797 | **+3,10** | [+1,57; +4,78] | **0,0054** | ✱ |
+| 20 % | 110 | 0,9487 | 0,9891 | **+4,03** | [+2,67; +5,54] | **0,0006** | ✱ |
+| 25 % | 137 | 0,9487 | 0,9912 | **+4,25** | [+2,85; +5,76] | **0,0006** | ✱ |
+
+Monotonía (He1b): Spearman ρ = **+1,000**, p = **0,0167** (exacto, sobre las 5 dosis medidas).
+
+**Lectura.** H₀ se rechaza para He1 en los tres niveles de dosis a partir del 15 %, con efectos de +3,1 a +4,3 pp, todos por encima del umbral preregistrado de 2 pp y con intervalos que excluyen el cero. La relación dosis-respuesta es perfectamente monótona. A dosis bajas (5 % y 10 %) el efecto existe pero no supera la corrección por comparaciones múltiples: la señal cae por debajo del ruido de partición, lo cual es coherente con un efecto proporcional a la dosis.
+
+**Dos precisiones sobre el cálculo de la monotonía**, ambas corregidas respecto de la primera ejecución:
+
+1. **El punto λ = 0 se excluye de la correlación.** Su Δ es cero *por construcción* —ambos brazos son el mismo entrenamiento—, no una medición. Incluir un punto construido en un test de correlación infla el resultado.
+2. **El p-valor es exacto, por enumeración de permutaciones, no asintótico.** La aproximación de `scipy.stats.spearmanr` degenera con correlación perfecta: el estadístico *t* diverge y devuelve p = 0,0000, que es imposible. Con 5 puntos y ρ = 1, el p-valor exacto es 2/120 = 0,0167, que es además **el mínimo alcanzable con ese número de puntos**. El contraste es significativo a α = 0,05, pero sin margen: añadir niveles de dosis es lo único que daría holgura.
+
 **Réplica extendida (declarada, no preregistrada).** Para corregir ese defecto se ejecuta una réplica con **6 niveles de dosis** (0, 5, 10, 15, 20 y 25 %) — con n = 6 y ρ = 1, Spearman alcanza p ≈ 0,003 — y **20 réplicas**, para disponer de margen frente a la corrección de Holm sobre 5 contrastes. Se reconoce explícitamente que ampliar las réplicas tras observar un p-valor limítrofe es una decisión *post hoc*. Por eso: (1) el resultado de n = 10 de la tabla anterior se mantiene como **resultado primario** y se reporta tal cual; (2) la réplica se presenta como análisis secundario, motivado por el defecto de He1b; (3) ambas tablas figuran en la tesis.
 
 ---
